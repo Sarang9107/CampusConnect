@@ -1,80 +1,99 @@
 package com.example.campusconnect
 
-import okhttp3.*
+import android.util.Log
+import com.google.firebase.firestore.FirebaseFirestore
+import okhttp3.Call
+import okhttp3.Callback
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
 
 object GeminiApi {
-
-    private const val BASE_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro-002:generateContent"
     private val client = OkHttpClient()
+    private const val API_KEY = BuildConfig.GEMINI_API_KEY
 
     fun sendMessage(
         userMessage: String,
         onResponse: (String) -> Unit,
         onError: (String) -> Unit
     ) {
-        val apiKey = "AIzaSyAeZfFNsz4AQXDLD9680fMq9-zSfpzGmpo"
-
-        val urlWithKey = "$BASE_URL?key=$apiKey"
-
-        val jsonObject = JSONObject()
-        val part = JSONObject()
-        part.put("text", userMessage)
-        val partsArray = JSONArray().put(part)
-        val content = JSONObject()
-        content.put("parts", partsArray)
-        val contentsArray = JSONArray().put(content)
-        jsonObject.put("contents", contentsArray)
-
-        val genConfig = JSONObject()
-        genConfig.put("maxOutputTokens", 256)
-        genConfig.put("temperature", 1)
-        jsonObject.put("generationConfig", genConfig)
-
-        val mediaType = "application/json".toMediaType()
-        val requestBody = jsonObject.toString().toRequestBody(mediaType)
-
-        val request = Request.Builder()
-            .url(urlWithKey)
-            .post(requestBody)
-            .build()
-
-        client.newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                onError("Network error: ${e.message}")
+        fetchEvents { events ->
+            val eventsInfo = events.joinToString("\n") {
+                "Event: ${it.name}, Date: ${it.date}, Description: ${it.description}, Location: ${it.location}"
             }
+            val prompt = """
+                You are a campus bot. Answer the user's question based on the following information about events:
+                $eventsInfo
+                
+                Question: $userMessage
+            """.trimIndent()
 
-            override fun onResponse(call: Call, response: Response) {
-                val bodyString = response.body?.string()
-                if (response.isSuccessful && bodyString != null) {
-                    try {
-                        val json = JSONObject(bodyString)
-                        val candidates = json.getJSONArray("candidates")
-                        if (candidates.length() > 0) {
-                            val firstCandidate = candidates.getJSONObject(0)
-                            val contentObject = firstCandidate.getJSONObject("content")
-                            val partsArrayResponse = contentObject.getJSONArray("parts")
-                            if (partsArrayResponse.length() > 0) {
-                                val firstPart = partsArrayResponse.getJSONObject(0)
-                                val textResponse = firstPart.getString("text")
-                                onResponse(textResponse)
-                            } else {
-                                onError("Failed to parse response: 'parts' array is empty. (Body: $bodyString)")
-                            }
-                        } else {
-                            onError("Failed to parse response: 'candidates' array is empty. (Body: $bodyString)")
-                        }
-                    } catch (e: Exception) {
-                        onError("Failed to parse response: ${e.message} (Body: $bodyString)")
-                    }
-                } else {
-                    onError("API error: ${response.code} - (Body: $bodyString)")
+            val requestBody = JSONObject()
+            val contents = JSONArray().put(JSONObject().put("parts", JSONArray().put(JSONObject().put("text", prompt))))
+            requestBody.put("contents", contents)
+
+            val request = Request.Builder()
+                .url("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=$API_KEY")
+                .post(requestBody.toString().toRequestBody("application/json".toMediaType()))
+                .build()
+
+            client.newCall(request).enqueue(object : Callback {
+                override fun onFailure(call: Call, e: IOException) {
+                    Log.e("GeminiApi", "API call failed", e)
+                    onError("Failed to connect. Please check your internet connection.")
                 }
+
+                override fun onResponse(call: Call, response: Response) {
+                    if (!response.isSuccessful) {
+                        val errorBody = response.body?.string()
+                        Log.e("GeminiApi", "API call failed with code ${response.code} and body $errorBody")
+                        onError("An error occurred (Code: ${response.code}). Please try again.")
+                        return
+                    }
+                    response.body?.string()?.let {
+                        try {
+                            val jsonObject = JSONObject(it)
+                            val candidates = jsonObject.getJSONArray("candidates")
+                            if (candidates.length() > 0) {
+                                val content = candidates.getJSONObject(0).getJSONObject("content")
+                                val parts = content.getJSONArray("parts")
+                                if (parts.length() > 0) {
+                                    val answer = parts.getJSONObject(0).getString("text")
+                                    onResponse(answer)
+                                } else {
+                                    onResponse("No response text found.")
+                                }
+                            } else {
+                                onResponse("I can't answer that right now.")
+                            }
+                        } catch (e: Exception) {
+                            Log.e("GeminiApi", "Failed to parse response", e)
+                            onError("Failed to parse the response.")
+                        }
+                    } ?: onError("The response was empty.")
+                }
+            })
+        }
+    }
+
+    private fun fetchEvents(onResult: (List<EventData>) -> Unit) {
+        val db = FirebaseFirestore.getInstance()
+        db.collection("events")
+            .get()
+            .addOnSuccessListener { result ->
+                val events = result.map { document ->
+                    document.toObject(EventData::class.java)
+                }
+                onResult(events)
             }
-        })
+            .addOnFailureListener { exception ->
+                Log.w("GeminiApi", "Error getting documents.", exception)
+                onResult(emptyList())
+            }
     }
 }

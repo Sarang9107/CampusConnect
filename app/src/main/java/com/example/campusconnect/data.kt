@@ -1,12 +1,12 @@
 package com.example.campusconnect
 
-import android.os.Parcelable
-import kotlinx.parcelize.Parcelize
+import com.google.firebase.firestore.PropertyName
 
-@Parcelize
-data class Event(
-    val title: String,
-    val description: String,
-    val date: String,
-    val details: String
-) : Parcelable
+data class EventData(
+    @get:PropertyName("name") @set:PropertyName("name") var name: String = "",
+    @get:PropertyName("date") @set:PropertyName("date") var date: String = "",
+    @get:PropertyName("description") @set:PropertyName("description") var description: String = "",
+    @get:PropertyName("location") @set:PropertyName("location") var location: String? = null
+) {
+    constructor() : this("", "", "", null)
+}

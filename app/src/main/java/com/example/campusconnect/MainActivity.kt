@@ -19,9 +19,14 @@ class MainActivity : ComponentActivity() {
         auth = FirebaseAuth.getInstance()
 
         setContent {
+            // Ensure you have a MaterialTheme (M3) defined in your ui.theme package
+            // or provide one here if you haven't.
+            // For example, YourAppTheme { ... } if you have a custom M3 theme.
+            // Using the default MaterialTheme for now.
             MaterialTheme {
                 val navController = rememberNavController()
-                val viewModel: CampusBotViewModel = viewModel()
+                val campusBotViewModel: CampusBotViewModel = viewModel()
+                val profileViewModel: ProfileViewModel = viewModel()
 
                 // Determine start destination
                 val startDestination = if (auth.currentUser != null) {
@@ -33,7 +38,8 @@ class MainActivity : ComponentActivity() {
                 AppNavGraph(
                     navController = navController,
                     startDestination = startDestination,
-                    viewModel = viewModel,
+                    campusBotViewModel = campusBotViewModel, // Corrected parameter name
+                    profileViewModel = profileViewModel,   // Added profileViewModel
                     loginUser = { email, password, onSuccess, onFailure ->
                         loginUser(email, password, onSuccess, onFailure)
                     },
@@ -57,7 +63,7 @@ class MainActivity : ComponentActivity() {
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
                     val userId = auth.currentUser?.uid ?: ""
-                    onSuccess(userId)
+                    onSuccess(userId) // Pass userId on successful login
                 } else {
                     onFailure(task.exception?.message ?: "Unknown login error")
                 }
@@ -75,12 +81,12 @@ class MainActivity : ComponentActivity() {
             }
     }
 
-    // New logout function
     fun logoutUser(onLoggedOut: () -> Unit) {
         auth.signOut()
         onLoggedOut()
     }
 }
+
 
 fun fetchEvents(onResult: (List<Event>) -> Unit) {
     val db = FirebaseFirestore.getInstance()

@@ -15,13 +15,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Button
-import androidx.compose.material.OutlinedButton
-import androidx.compose.material.LinearProgressIndicator
-import androidx.compose.material.Scaffold
-import androidx.compose.material.Text
-import androidx.compose.material.TextField
-import androidx.compose.material.TopAppBar
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,8 +31,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CampusBotScreen(
     messages: List<ChatMessage>,
@@ -94,7 +96,7 @@ fun CampusBotScreen(
             if (suggestedQuestions.isNotEmpty()) {
                 Text(
                     text = "Suggestions:",
-                    style = MaterialTheme.typography.subtitle2,
+                    style = MaterialTheme.typography.labelLarge,
                     modifier = Modifier.padding(start = 8.dp, top = 8.dp, bottom = 4.dp)
                 )
                 LazyRow(
@@ -138,7 +140,7 @@ fun CampusBotScreen(
 
 @Composable
 fun MessageBubble(message: ChatMessage) {
-    val bubbleColor = if (message.isUser) Color(0xFFD2F8D2) else Color.White
+    val bubbleColor = if (message.isUser) Color(0xFFB9ECB9) else Color.White
     val alignment = if (message.isUser) Alignment.End else Alignment.Start
 
     Row(
@@ -163,12 +165,4 @@ fun MessageBubble(message: ChatMessage) {
     }
 }
 
-object MaterialTheme {
-    object typography {
-        val subtitle2 = androidx.compose.ui.text.TextStyle(
-            fontWeight = FontWeight.Medium,
-            fontSize = 14.sp,
-            letterSpacing = 0.1.sp
-        )
-    }
-}
+

@@ -1,8 +1,8 @@
 package com.example.campusconnect
 
-
 import android.widget.Toast
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -16,7 +16,8 @@ import java.net.URLEncoder
 fun AppNavGraph(
     navController: NavHostController,
     startDestination: String,
-    viewModel: CampusBotViewModel,
+    campusBotViewModel: CampusBotViewModel,
+    profileViewModel: ProfileViewModel = viewModel(),
     loginUser: (String, String, (String) -> Unit, (String) -> Unit) -> Unit,
     signUpUser: (String, String, () -> Unit, (String) -> Unit) -> Unit,
     fetchEvents: ((List<Event>) -> Unit) -> Unit,
@@ -35,6 +36,7 @@ fun AppNavGraph(
                         email,
                         password,
                         { _ ->
+                            profileViewModel.fetchUserProfile()
                             navController.navigate("dashboard") {
                                 popUpTo("login") { inclusive = true }
                             }
@@ -106,20 +108,23 @@ fun AppNavGraph(
                         }
                         Toast.makeText(navController.context, "Logged out successfully", Toast.LENGTH_SHORT).show()
                     }
+                },
+                onGoToProfile = { 
+                    navController.navigate("profile")
                 }
             )
         }
 
         composable("chat") {
             CampusBotScreen(
-                messages = viewModel.messages,
-                userInput = viewModel.userInput,
-                onUserInputChange = { viewModel.onUserInputChange(it) },
-                onSendClick = { viewModel.sendMessage() },
-                isLoading = viewModel.isLoading,
-                errorMessage = viewModel.errorMessage,
-                suggestedQuestions = viewModel.suggestedQuestions,
-                onSuggestedQuestionClick = viewModel::onSuggestedQuestionClick
+                messages = campusBotViewModel.messages,
+                userInput = campusBotViewModel.userInput,
+                onUserInputChange = { campusBotViewModel.onUserInputChange(it) },
+                onSendClick = { campusBotViewModel.sendMessage() },
+                isLoading = campusBotViewModel.isLoading,
+                errorMessage = campusBotViewModel.errorMessage,
+                suggestedQuestions = campusBotViewModel.suggestedQuestions,
+                onSuggestedQuestionClick = campusBotViewModel::onSuggestedQuestionClick
             )
         }
 
@@ -144,8 +149,15 @@ fun AppNavGraph(
                 )
             } else {
                 Toast.makeText(navController.context, "Error loading event details.", Toast.LENGTH_SHORT).show()
-                navController.popBackStack() // Navigate back if details are missing
+                navController.popBackStack()
             }
+        }
+
+        composable("profile") { 
+            ProfileScreen(
+                profileViewModel = profileViewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
     }
 }

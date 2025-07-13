@@ -62,7 +62,8 @@ fun DashboardScreen(
     onGoToChat: () -> Unit,
     onEventClick: (Event) -> Unit,
     fetchEvents: (onResult: (List<Event>) -> Unit) -> Unit,
-    onLogoutClicked: () -> Unit // Ensured this parameter is present
+    onLogoutClicked: () -> Unit,
+    onGoToProfile: () -> Unit
 ) {
     var isLoading by remember { mutableStateOf(true) }
     var eventsList by remember { mutableStateOf<List<Event>>(emptyList()) }
@@ -95,8 +96,7 @@ fun DashboardScreen(
                     selected = false,
                     onClick = {
                         scope.launch { drawerState.close() }
-                        Toast.makeText(context, "Profile Clicked", Toast.LENGTH_SHORT).show()
-                        // TODO: Navigate to Profile Screen
+                        onGoToProfile()
                     }
                 )
                 NavigationDrawerItem(
@@ -106,7 +106,7 @@ fun DashboardScreen(
                     onClick = {
                         scope.launch { drawerState.close() }
                         Toast.makeText(context, "Settings Clicked", Toast.LENGTH_SHORT).show()
-                        // TODO: Navigate to Settings Screen
+
                     }
                 )
                 NavigationDrawerItem(
@@ -251,7 +251,8 @@ fun DashboardScreenPreview() {
             onGoToChat = {},
             onEventClick = {},
             fetchEvents = { it(emptyList()) },
-            onLogoutClicked = {}
+            onLogoutClicked = {},
+            onGoToProfile = {} // Added for preview
         )
     }
 }
